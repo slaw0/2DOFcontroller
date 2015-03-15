@@ -15,6 +15,7 @@ public class MainActivity extends ActionBarActivity {
         /*TODO: draw basic controll surface on canvas*/
     }
 
+    //git test
     //Runs when app starts
     @Override
     protected void onCreate(Bundle savedInstanceState) {
