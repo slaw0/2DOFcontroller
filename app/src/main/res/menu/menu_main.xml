@@ -5,10 +5,4 @@
         android:orderInCategory="101" app:showAsAction="never" />
     <item android:id="@+id/action_bluetooth" android:title="@string/action_bluetooth"
         android:orderInCategory="010" app:showAsAction="never" />
-    <item android:id="@+id/action_connection" android:title="@string/action_connection"
-        android:orderInCategory="011" app:showAsAction="never" />
-    <item android:id="@+id/action_controller" android:title="@string/action_input_mode"
-        android:orderInCategory="001" app:showAsAction="ifRoom|withText" />
-    <item android:id="@+id/action_aware" android:title="@string/action_awareness"
-        android:orderInCategory="002" app:showAsAction="never" />
 </menu>
