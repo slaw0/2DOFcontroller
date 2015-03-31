@@ -78,7 +78,7 @@ public class MainActivity extends ActionBarActivity {
 
         //Gui elemek initje hogy kódból hívható legyen
         StatusDisplay = (TextView) findViewById(R.id.stats);
-        Display = (SurfaceView) findViewById(R.id.inputField);
+        //Display = (SurfaceView) findViewById(R.id.inputField);
 
         handler.postDelayed(runnable, Ts_ms);
     }
@@ -145,7 +145,13 @@ public class MainActivity extends ActionBarActivity {
         oldY=newY;
     }
 
-    private String s="";
+    private void updateDataDisplay(){
+        String s;
+
+        s=String.format("GYRO Data:\ndiff X: %.6f\ndiff Y: %.6f",dX,dY);
+        StatusDisplay.setText(s);
+    }
+
     //időzített hurok
     private Runnable runnable = new Runnable() {
         @Override
@@ -155,8 +161,7 @@ public class MainActivity extends ActionBarActivity {
             default:
                 case GYRO:
                     pollOrientation();
-                    s=String.format("diff X: %.6f\ndiff Y: %.6f",dX,dY);
-                    StatusDisplay.setText(s);
+                    updateDataDisplay();
                 break;
                 case TOUCH:
 
