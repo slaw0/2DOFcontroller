@@ -1,5 +1,8 @@
 package com.iit.slawo.zdofcontroller;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.hardware.Sensor;
@@ -9,20 +12,30 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.Set;
+
 
 public class MainActivity extends ActionBarActivity {
     private enum ControlType {GYRO, TOUCH}
-
+    private static final String TAG = "2DOFcontroller";
     private TextView StatusDisplay;
+    BluetoothAdapter bluetooth;
+    private String DEVICE_MAC_ADDR;
+    private boolean testing=true;//teszteléshez
+    BluetoothDevice TARGET_DEVICE;
+
     //private SurfaceView Display;
     private ControlType InputMode;
-    private int Ts_ms=100;
+    private int Ts_ms=1000;
     private Handler handler = new Handler();
 
     final float[] mValuesMagnet      = new float[3];
@@ -35,8 +48,7 @@ public class MainActivity extends ActionBarActivity {
         /*TODO: draw basic controll surface on canvas*/
     }
 
-    public void setListners(SensorManager sensorManager, SensorEventListener mEventListener)
-    {
+    public void setListners(SensorManager sensorManager, SensorEventListener mEventListener){
         sensorManager.registerListener(mEventListener, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
                 SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(mEventListener, sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
@@ -74,11 +86,18 @@ public class MainActivity extends ActionBarActivity {
         setListners(sensorManager, mEventListener);
 
         DrawControlLayout();
+
+        bluetooth = BluetoothAdapter.getDefaultAdapter();
+        if(testing){//tesztelés laptop MAC-al
+            DEVICE_MAC_ADDR = "50:63:13:8B:47:56";
+        }else{//éles MAC
+            DEVICE_MAC_ADDR = "";
+        }
         InputMode = ControlType.GYRO;
 
         //Gui elemek initje hogy kódból hívható legyen
         StatusDisplay = (TextView) findViewById(R.id.stats);
-        //Display = (SurfaceView) findViewById(R.id.inputField);
+        //Display = (SurfaceView) findViewById(R.id.inputField);//unused
 
         handler.postDelayed(runnable, Ts_ms);
     }
@@ -107,13 +126,17 @@ public class MainActivity extends ActionBarActivity {
                 finish();
             break;
             case R.id.action_bluetooth :
-                //open bluetooth menu
-                final Intent intent = new Intent(Intent.ACTION_MAIN, null);
-                intent.addCategory(Intent.CATEGORY_LAUNCHER);
-                ComponentName cn = new ComponentName("com.android.settings","com.android.settings.bluetooth.BluetoothSettings");
-                intent.setComponent(cn);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity( intent);
+                //power on/of bluetooth
+                if (bluetooth.isEnabled()) {
+                    bluetooth.disable();
+                }else{
+                    bluetooth.enable();
+                }
+            break;
+            case R.id.action_connection :
+                //connect to device
+
+
             break;
             default:
             break;
@@ -126,6 +149,16 @@ public class MainActivity extends ActionBarActivity {
     private double newX, newY;
     private double dX, dY;
     private boolean flag=false;
+    private class bluetoothStatus{
+        public String power;
+        public String connection;
+        bluetoothStatus(){power="";connection="";}
+        public void powerOn(){ power = "Power On";}
+        public void powerOff(){ power = "Power Off";}
+        public void connectionNotEstablished(){ connection = "No connection";}
+        public void connectionEstablished(){ connection = "Connected to device";}
+    }
+    bluetoothStatus BTS = new bluetoothStatus();
 
     private void pollOrientation(){
         SensorManager.getRotationMatrix(mRotationMatrix, null, mValuesAccel, mValuesMagnet);
@@ -148,7 +181,8 @@ public class MainActivity extends ActionBarActivity {
     private void updateDataDisplay(){
         String s;
 
-        s=String.format("GYRO Data:\ndiff X: %.6f\ndiff Y: %.6f",dX,dY);
+        s=String.format("Bluetooth Data:\n%s\n%s",BTS.power,BTS.connection);
+        s=String.format("%s\nGYRO Data (rad):\ndiff X: %.6f\ndiff Y: %.6f",s,dX,dY);
         StatusDisplay.setText(s);
     }
 
@@ -158,20 +192,31 @@ public class MainActivity extends ActionBarActivity {
         public void run() {
             /* sensor poll */
             switch(InputMode){
-            default:
+                default:
                 case GYRO:
                     pollOrientation();
-                    updateDataDisplay();
                 break;
                 case TOUCH:
 
                 break;
             }
 
-            /*adat küldése */
+            if (bluetooth.isEnabled()) {
+                /*adat küldése */
+                BTS.powerOn();
 
+
+                /*adat fogadás */
+
+
+            }else{
+                BTS.powerOff();
+                BTS.connectionNotEstablished();
+            }
+            /*fogadott adat feldolgozása */
 
             /* feldolgozás újrahívása */
+            updateDataDisplay();
             handler.postDelayed(this, Ts_ms);
         }
     };
