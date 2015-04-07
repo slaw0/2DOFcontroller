@@ -132,8 +132,12 @@ public class MainActivity extends ActionBarActivity {
         //   A Service ID or UUID.  In this case we are using the
         //     UUID for SPP.
         try {
-            //TODO: Figure out how to programatically hide pin request dialog
-            btSocket = TARGET_DEVICE.createRfcommSocketToServiceRecord(SPP_UUID);
+            //TODO: Figure out how to use pin
+            if(testing) {// Win7 on my laptop forces the PIN usage
+                btSocket = TARGET_DEVICE.createRfcommSocketToServiceRecord(SPP_UUID);
+            }else {
+                btSocket = TARGET_DEVICE.createInsecureRfcommSocketToServiceRecord(SPP_UUID);
+            }
         } catch (IOException e) {
             errorExit("Fatal Error", "In onResume() and socket create failed: " + e.getMessage() + ".");
         }
@@ -319,8 +323,8 @@ public class MainActivity extends ActionBarActivity {
         switch(InputMode){
             default:
             case GYRO:
-                incX = dX / 0.01;
-                incY = dY / 0.01;
+                incX = Math.round(dX*1000.0)/1000.0 / 0.01;
+                incY = Math.round(dY*1000.0)/1000.0 / 0.01;
             break;
             case TOUCH:
 
@@ -350,8 +354,11 @@ public class MainActivity extends ActionBarActivity {
                 if(btSocket != null) {
                     BTS.connectionEstablished();
                     /*send data */
-                        sendData(String.format("%+f%+f",incX,incY));
-
+                    if(testing) {//for better testing
+                        sendData(String.format("%+.3fXXX%+.3f\n\r", incX, incY));
+                    }else{
+                        sendData(String.format("%+.3f%+.3f", incX, incY));
+                    }
                     /*receive data */
 
 
