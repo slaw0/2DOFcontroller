@@ -38,11 +38,12 @@ public class MainActivity extends ActionBarActivity {
     private BluetoothSocket btSocket = null;
     private OutputStream outStream = null;
     private BluetoothDevice TARGET_DEVICE;
+    private final double scale = ((Math.PI / 3)*2)/(2* 650 );
 
     //SPP connection parameters
     private String DEVICE_MAC_ADDR = "00:00:00:00:00:00";
     private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");//SPP profile UUID
-    private static final boolean testing = true;//testing flag
+    private static final boolean testing = false;//testing flag
     //PIN Has to be set in the device code too.
 
     //private SurfaceView Display;
@@ -109,7 +110,7 @@ public class MainActivity extends ActionBarActivity {
         if(testing){//MAC for testing eg. with laptop
             DEVICE_MAC_ADDR = "50:63:13:8B:47:56";
         }else{//device MAC
-            DEVICE_MAC_ADDR = "00:00:00:00:00:00";
+            DEVICE_MAC_ADDR = "00:06:66:63:D0:93";
         }
         InputMode = ControlType.GYRO;
 
@@ -213,10 +214,17 @@ public class MainActivity extends ActionBarActivity {
     }
 
     //sending function
-    private void sendData(String message) {
-        byte[] msgBuffer = message.getBytes();
+    private void sendData(byte messageType,short incX, short incY) {
+        byte[] msgBuffer = new byte[5];
 
-        Log.d(TAG, "...Sending data: " + message + "...");
+        msgBuffer[0] = messageType;
+        if ( messageType == 0x58 ) {
+            msgBuffer[2] = (byte) (incX & 0xff);
+            msgBuffer[1] = (byte) ((incX >> 8) & 0xff);
+            msgBuffer[4] = (byte) (incY & 0xff);
+            msgBuffer[3] = (byte) ((incY >> 8) & 0xff);
+        }
+        Log.d(TAG, "...Sending data: " + (char)messageType + "...");
 
         try {
             outStream.write(msgBuffer);
@@ -314,17 +322,19 @@ public class MainActivity extends ActionBarActivity {
         s=String.format("Bluetooth Data:\n%s\n%s",BTS.power,BTS.connection);
         s=String.format("%s\nGYRO Data (rad):\ndiff X: %+.6f\ndiff Y: %+.6f",s,dX,dY);
         s=String.format("%s\nGYRO Data (deg):\ndiff X: %+.6f\ndiff Y: %+.6f",s,Math.toDegrees(dX),Math.toDegrees(dY));
+        s=String.format("%s\nIncrement (mm):\ndiff X: %+d\ndiff Y: %+d",s,incX,incY);
         StatusDisplay.setText(s);
     }
 
     //Scaling the Gyro measurement to desired input range
-    private double incX, incY;
+    private short incX = 0;
+    private short incY = 0;
     private void ScaleMeasurements(){
         switch(InputMode){
             default:
             case GYRO:
-                incX = Math.round(dX*1000.0)/1000.0 / 0.01;
-                incY = Math.round(dY*1000.0)/1000.0 / 0.01;
+                incX = (short) Math.round(dX/scale);
+                incY = (short) Math.round(dY/scale);
             break;
             case TOUCH:
 
@@ -354,15 +364,12 @@ public class MainActivity extends ActionBarActivity {
                 if(btSocket != null) {
                     BTS.connectionEstablished();
                     /*send data */
-                    if(testing) {//for better testing
-                        sendData(String.format("%+.3fXXX%+.3f\n\r", incX, incY));
-                    }else{
-                        sendData(String.format("%+.3f%+.3f", incX, incY));
+                    if(testing) {//for better reading when testing
+                        sendData( (byte)0x58, incX, incY);
+                    }else{//the sign is the delimiter for now
+                        sendData( (byte)0x58, incX, incY);
                     }
-                    /*receive data */
-
-
-                    /*process incoming data*/
+                    /*receive and process incoming data*/
 
                 }else{
                     BTS.connectionNotEstablished();
